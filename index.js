@@ -43,7 +43,6 @@ async function run() {
     });
 
     //update delivery
-    // update user
     app.patch("/inventory/:id", async (req, res) => {
       const id = req.params.id;
       const updatedGadgets = req.body;
@@ -59,6 +58,13 @@ async function run() {
         updatedDoc,
         options
       );
+      res.send(result);
+    });
+
+    //post
+    app.post("/additems", async (req, res) => {
+      const newUser = req.body;
+      const result = await gadgetCollection.insertOne(newUser);
       res.send(result);
     });
 
