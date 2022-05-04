@@ -24,12 +24,42 @@ async function run() {
   try {
     await client.connect();
     const gadgetCollection = client.db("GadgetX").collection("items");
-    console.log("db connected");
+    console.log("DB connected");
+
+    //findall
     app.get("/inventory", async (req, res) => {
       const query = {};
       const cursor = gadgetCollection.find(query);
       const items = await cursor.toArray();
       res.send(items);
+    });
+
+    //findone
+    app.get("/inventory/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const service = await gadgetCollection.findOne(query);
+      res.send(service);
+    });
+
+    //update delivery
+    // update user
+    app.patch("/inventory/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedGadgets = req.body;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          quantity: updatedGadgets?.newQuantity,
+        },
+      };
+      const result = await gadgetCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      res.send(result);
     });
   } finally {
   }
