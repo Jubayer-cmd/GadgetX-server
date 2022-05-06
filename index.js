@@ -75,6 +75,14 @@ async function run() {
       const result = await gadgetCollection.deleteOne(query);
       res.send(result);
     });
+    //check orders
+    app.get("/order", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const cursor = gadgetCollection.find(query);
+      const orders = await cursor.toArray();
+      res.send(orders);
+    });
   } finally {
   }
 }
