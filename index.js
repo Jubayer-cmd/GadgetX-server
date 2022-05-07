@@ -1,5 +1,6 @@
 const express = require("express");
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const port = process.env.PORT || 5000;
 const ObjectId = require("mongodb").ObjectId;
@@ -9,6 +10,22 @@ const app = express();
 //middleware
 app.use(express.json());
 app.use(cors());
+
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden access" });
+    }
+    console.log("decoded", decoded);
+    req.decoded = decoded;
+    next();
+  });
+}
 
 app.get("/", async (req, res) => {
   res.send("Server is running");
@@ -25,6 +42,15 @@ async function run() {
     await client.connect();
     const gadgetCollection = client.db("GadgetX").collection("items");
     console.log("DB connected");
+
+    // AUTH
+    app.post("/login", async (req, res) => {
+      const user = req.body;
+      const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1d",
+      });
+      res.send({ accessToken });
+    });
 
     //findall
     app.get("/inventory", async (req, res) => {
@@ -76,12 +102,17 @@ async function run() {
       res.send(result);
     });
     //check orders
-    app.get("/order", async (req, res) => {
+    app.get("/order", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
       const email = req.query.email;
-      const query = { email: email };
-      const cursor = gadgetCollection.find(query);
-      const orders = await cursor.toArray();
-      res.send(orders);
+      if (email === decodedEmail) {
+        const query = { email: email };
+        const cursor = gadgetCollection.find(query);
+        const orders = await cursor.toArray();
+        res.send(orders);
+      } else {
+        res.status(403).send({ message: "forbidden access" });
+      }
     });
   } finally {
   }
